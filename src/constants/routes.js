@@ -4,6 +4,8 @@ const ROUTES = {
   ORGANIZATIONS: '/organizations',
   HOW_IT_WORKS: '/how-it-works',
   ABOUT: '/about',
+  LOGIN: '/login',
+  REGISTER: '/register',
 }
 
 export default ROUTES
