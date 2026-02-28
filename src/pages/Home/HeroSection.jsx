@@ -1,23 +1,22 @@
 import { MapPin } from 'lucide-react'
+import heroImage from '../../assets/images/Hero Image.jpg'
+import image2 from '../../assets/images/Image 2.jpg'
+import image3 from '../../assets/images/Image 3.jpg'
+import image4 from '../../assets/images/Image 4.jpg'
+import image5 from '../../assets/images/Image 5.jpg'
 
-/**
- * HeroSection – image collage grid matching the design mockup.
- * Replace the placeholder divs with <img> tags once you have real photos.
- *
- * Grid layout (mirroring the mockup):
- *   [Large left image] | [Top-right top] [Top-right bottom-left] [Top-right bottom-right]
- *                                         [Bottom-right left]   [Bottom-right right]
- */
+
 export default function HeroSection() {
   return (
-    <section className="w-full">
+    <section className="w-full mt-3">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-0.5 bg-gray-200">
         {/* ── Left: large hero image ── */}
         <div className="relative bg-gray-300 min-h-[320px] md:min-h-[420px]">
-          {/* Replace below div with: <img src={heroImg} alt="..." className="w-full h-full object-cover" /> */}
-          <div className="w-full h-full min-h-[320px] md:min-h-[420px] bg-gray-400 flex items-center justify-center text-gray-500 text-sm">
-            Hero Image (Left)
-          </div>
+          <img 
+            src={heroImage} 
+            alt="HCMUT Giving Education Fund - Children in Binh Thuan" 
+            className="w-full h-full min-h-[320px] md:min-h-[420px] object-cover"
+          />
 
           {/* Caption overlay */}
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-4">
@@ -29,23 +28,47 @@ export default function HeroSection() {
           </div>
         </div>
 
-        {/* ── Right: 2×2 grid of images ── */}
-        <div className="grid grid-cols-2 grid-rows-2 gap-0.5">
-          {/* Top-left */}
-          <div className="bg-gray-400 min-h-[160px] md:min-h-[210px] flex items-center justify-center text-gray-500 text-xs">
-            Image 2
+        {/* ── Right: 3-column grid with img5 spanning 2 rows ── */}
+        <div className="grid grid-cols-3 grid-rows-2 gap-0.5">
+          {/* Row 1, Col 1 - img1 */}
+          <div className="bg-gray-300 min-h-[160px] md:min-h-[210px] overflow-hidden">
+            <img 
+              src={image2} 
+              alt="Charity event - Food distribution" 
+              className="w-full h-full object-cover"
+            />
           </div>
-          {/* Top-right */}
-          <div className="bg-gray-500 min-h-[160px] md:min-h-[210px] flex items-center justify-center text-gray-400 text-xs">
-            Image 3
+          {/* Row 1, Col 2 - img2 */}
+          <div className="bg-gray-300 min-h-[160px] md:min-h-[210px] overflow-hidden">
+            <img 
+              src={image3} 
+              alt="Community gathering" 
+              className="w-full h-full object-cover"
+            />
           </div>
-          {/* Bottom-left */}
-          <div className="bg-gray-500 min-h-[160px] md:min-h-[210px] flex items-center justify-center text-gray-400 text-xs">
-            Image 4
+          {/* Row 1-2, Col 3 - img5 (spans 2 rows) */}
+          <div className="bg-gray-300 row-span-2 overflow-hidden">
+            <img 
+              src={image5} 
+              alt="Children running together" 
+              className="w-full h-full object-cover"
+            />
           </div>
-          {/* Bottom-right */}
-          <div className="bg-gray-400 min-h-[160px] md:min-h-[210px] flex items-center justify-center text-gray-500 text-xs">
-            Image 5
+          {/* Row 2, Col 1 - img3 */}
+          <div className="bg-gray-300 min-h-[160px] md:min-h-[210px] overflow-hidden">
+            <img 
+              src={image4} 
+              alt="Education support program" 
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Row 2, Col 2 - img4 */}
+          <div className="bg-gray-300 min-h-[160px] md:min-h-[210px] overflow-hidden">
+            <img 
+              src={image4} 
+              alt="Children in classroom" 
+              className="w-full h-full object-cover"
+            />
           </div>
         </div>
       </div>
