@@ -1,174 +1,186 @@
-import { useState } from 'react'
-import { MapPin, ChevronRight } from 'lucide-react'
-import heroImage from '../../assets/images/Image 5.jpg'
+import { Fragment } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { ChevronLeft, Copy, FileText, ExternalLink, Clock3 } from 'lucide-react'
+import ROUTES from '@/constants/routes'
+import { CAMPAIGNS, WITHDRAWAL_REQUESTS, DISBURSEMENTS } from '@/constants/campaigns'
 
 export default function CampaignDetail() {
-  const [donationType, setDonationType] = useState('once')
-  const [selectedAmount, setSelectedAmount] = useState(null)
-  const [customAmount, setCustomAmount] = useState('')
+  const { id } = useParams()
+  const campaign = CAMPAIGNS.find((item) => String(item.id) === id) || CAMPAIGNS[0]
+  const progress = Number(((campaign.currentBalance / campaign.goal) * 100).toFixed(1))
 
-  const raised = 119680000
-  const goal = 150000000
-  const percentage = (raised / goal) * 100
-  const donations = 1234
-  const toGo = goal - raised
+  const formatCurrency = (value) => `${value.toLocaleString('vi-VN')} VND`
 
-  const donationOptions = [
-    { amount: 20000, description: 'Bread for 15 families per day' },
-    { amount: 20000, description: 'Bread for 15 families per day' },
-    { amount: 20000, description: 'Bread for 15 families per day' },
-    { amount: 20000, description: 'Bread for 15 families per day' },
-    { amount: 20000, description: 'Bread for 15 families per day' },
-    { amount: 20000, description: 'Bread for 15 families per day' },
-    { amount: 20000, description: 'Bread for 15 families per day' },
-  ]
-
-  const formatNumber = (num) => {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  const getStatusClass = (status) => {
+    if (status === 'Voting') return 'bg-orange-100 text-orange-600'
+    if (status === 'Approved') return 'bg-green-100 text-green-600'
+    return 'bg-red-100 text-red-600'
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
-            HCMUT Giving Education Fund
-          </h1>
-          <p className="text-sm text-gray-600">
-            by <span className="text-blue-500 font-medium">Ho Chi Minh University of Technology</span>
-          </p>
-        </div>
+    <section className="bg-gray-100 py-6 md:py-8">
+      <div className="container-custom space-y-5">
+        <Link
+          to={ROUTES.CAMPAIGNS}
+          className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-800"
+        >
+          <ChevronLeft size={16} />
+          Back to Campaigns
+        </Link>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Side - Images */}
-          <div>
-            {/* Main Image */}
-            <div className="bg-white rounded-lg overflow-hidden shadow-sm mb-4">
-              <img
-                src={heroImage}
-                alt="HCMUT Giving Education Fund"
-                className="w-full h-[400px] object-cover"
-              />
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h1 className="text-4xl/none font-bold text-gray-900">{campaign.title}</h1>
+          <p className="mt-3 text-gray-500">{campaign.detailDescription}</p>
+
+          <div className="mt-5 flex items-center justify-between rounded-lg bg-gray-50 p-3 text-sm">
+            <div>
+              <p className="text-gray-500">Token Address</p>
+              <p className="font-semibold text-gray-700">{campaign.tokenAddress}</p>
+            </div>
+            <button type="button" className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1.5 text-gray-600">
+              <Copy size={14} />
+              Copy
+            </button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="rounded-lg bg-slate-100 p-4">
+              <p className="text-sm text-gray-500">Funding Goal</p>
+              <p className="mt-1 text-4xl/none font-bold text-gray-900">{formatCurrency(campaign.goal)}</p>
             </div>
 
-            {/* Thumbnails */}
-            <div className="grid grid-cols-6 gap-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="aspect-square rounded overflow-hidden cursor-pointer hover:opacity-80 transition">
-                  <img
-                    src={heroImage}
-                    alt={`Thumbnail ${i}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
+            <div className="rounded-lg bg-cyan-50 p-4">
+              <p className="text-sm text-gray-500">Current Balance</p>
+              <p className="mt-1 text-4xl/none font-bold text-sky-600">{formatCurrency(campaign.currentBalance)}</p>
             </div>
           </div>
 
-          {/* Right Side - Donation Form */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            {/* Fundraising Stats */}
-            <div className="mb-6">
-              <div className="flex items-baseline justify-between mb-2">
-                <div>
-                  <span className="text-3xl font-bold text-green-500">
-                    {formatNumber(raised)}
-                  </span>
-                  <span className="text-gray-600 ml-2">
-                    raised of {formatNumber(goal)} goal
-                  </span>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-                <div
-                  className="bg-green-500 h-3 rounded-full transition-all"
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
-
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>{formatNumber(donations)} donations</span>
-                <span>{formatNumber(toGo)} to go</span>
-              </div>
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between text-sm font-medium">
+              <p className="text-gray-700">Funding Progress</p>
+              <p className="text-gray-500">{progress}%</p>
             </div>
-
-            {/* Donate Now Button */}
-            <button className="w-full bg-orange-400 hover:bg-orange-500 text-white font-semibold py-3 rounded-lg mb-4 transition">
-              DONATE NOW
-            </button>
-
-            {/* Donation Type Toggle */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <button
-                onClick={() => setDonationType('once')}
-                className={`py-2 px-4 rounded-lg border-2 transition ${
-                  donationType === 'once'
-                    ? 'border-orange-400 bg-orange-50 text-orange-600 font-medium'
-                    : 'border-gray-200 text-gray-600'
-                }`}
-              >
-                Donate Once
-              </button>
-              <button
-                onClick={() => setDonationType('monthly')}
-                className={`py-2 px-4 rounded-lg border-2 transition ${
-                  donationType === 'monthly'
-                    ? 'border-orange-400 bg-orange-50 text-orange-600 font-medium'
-                    : 'border-gray-200 text-gray-600'
-                }`}
-              >
-                Donate Monthly
-              </button>
+            <div className="h-3 rounded-full bg-gray-200">
+              <div
+                className="h-full rounded-full bg-slate-900"
+                style={{ width: `${Math.min(progress, 100)}%` }}
+              />
             </div>
+          </div>
+        </div>
 
-            {/* Donation Options */}
-            <div className="space-y-3 mb-4">
-              {donationOptions.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedAmount(option.amount)}
-                  className={`w-full flex items-center justify-between p-4 rounded-lg border transition ${
-                    selectedAmount === option.amount
-                      ? 'border-orange-400 bg-orange-50'
-                      : 'border-gray-200 bg-gray-50 hover:border-orange-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-left">
-                      <div className="font-bold text-orange-500">
-                        {formatNumber(option.amount)}
-                      </div>
-                      <div className="text-xs text-gray-500">VND</div>
-                    </div>
-                    <div className="text-sm text-gray-700">
-                      {option.description}
-                    </div>
-                  </div>
-                  <ChevronRight className="text-orange-400" size={20} />
-                </button>
-              ))}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-gray-200 px-5 py-4">
+            <h2 className="text-3xl/none font-bold text-gray-900">Withdrawal Requests</h2>
+          </div>
 
-              {/* Custom Amount */}
-              <div className="flex items-center gap-2 p-4 rounded-lg border border-gray-200 bg-gray-50">
-                <input
-                  type="text"
-                  placeholder="Other amount"
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  className="flex-1 bg-transparent border-none outline-none text-gray-700"
-                />
-                <button className="bg-orange-400 hover:bg-orange-500 text-white p-2 rounded-lg transition">
-                  <ChevronRight size={20} />
-                </button>
-              </div>
-            </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Request ID</th>
+                  <th className="px-4 py-3 font-semibold">Amount (VND)</th>
+                  <th className="px-4 py-3 font-semibold">Evidence</th>
+                  <th className="px-4 py-3 font-semibold">Vote Result</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {WITHDRAWAL_REQUESTS.map((request) => (
+                  <Fragment key={request.id}>
+                    <tr className="border-t border-gray-100 text-gray-700">
+                      <td className="px-4 py-3 font-semibold">{request.requestId}</td>
+                      <td className="px-4 py-3 font-semibold">{formatCurrency(request.amount)}</td>
+                      <td className="px-4 py-3">
+                        <button type="button" className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600">
+                          <FileText size={14} />
+                          {request.evidenceLabel}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 font-semibold">{request.voteYes}% Yes</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${getStatusClass(request.status)}`}>
+                          {request.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {request.action ? (
+                          <button type="button" className="rounded-md bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white">{request.action}</button>
+                        ) : (
+                          <span className="text-gray-300">-</span>
+                        )}
+                      </td>
+                    </tr>
+
+                    {request.hasLiveVote && (
+                      <tr className="border-t border-gray-100 bg-gray-50/50">
+                        <td colSpan={6} className="px-4 py-4">
+                          <div className="space-y-2 text-sm">
+                            <p className="inline-flex items-center gap-1 font-semibold text-orange-500">
+                              <Clock3 size={14} />
+                              Voting Ends In: 2 Days 12 Hours
+                            </p>
+
+                            <div>
+                              <p className="mb-1 font-semibold text-green-600">Yes</p>
+                              <div className="h-2 rounded-full bg-gray-200">
+                                <div className="h-full rounded-full bg-green-500" style={{ width: `${request.voteYes}%` }} />
+                              </div>
+                            </div>
+
+                            <div>
+                              <p className="mb-1 font-semibold text-red-500">No</p>
+                              <div className="h-2 rounded-full bg-gray-200">
+                                <div className="h-full rounded-full bg-red-500" style={{ width: `${100 - request.voteYes}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-gray-200 px-5 py-4">
+            <h2 className="text-3xl/none font-bold text-gray-900">Disbursement History</h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Disbursement ID</th>
+                  <th className="px-4 py-3 font-semibold">Amount (VND)</th>
+                  <th className="px-4 py-3 font-semibold">Date</th>
+                  <th className="px-4 py-3 font-semibold">Transaction Hash</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {DISBURSEMENTS.map((item) => (
+                  <tr key={item.id} className="border-t border-gray-100 text-gray-700">
+                    <td className="px-4 py-3 font-semibold">#{item.id}</td>
+                    <td className="px-4 py-3 font-semibold">{formatCurrency(item.amount)}</td>
+                    <td className="px-4 py-3">{item.date}</td>
+                    <td className="px-4 py-3">
+                      <a href="#" className="inline-flex items-center gap-1 font-semibold text-sky-500">
+                        {item.txHash}
+                        <ExternalLink size={14} />
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }

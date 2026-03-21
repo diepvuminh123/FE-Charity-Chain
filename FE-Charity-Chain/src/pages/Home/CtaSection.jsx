@@ -11,7 +11,7 @@ export default function CtaSection() {
         <p className="text-sky-100 text-sm md:text-base max-w-xl mx-auto mb-8 leading-relaxed">
           Turn your idea into a trusted charity project using blockchain-powered budgets, voting, and public tracking.
         </p>
-        <Button variant="primary" size="lg">
+        <Button variant="primary" size="lg" className="rounded-md px-10 py-2.5 text-base">
           Get started
           <ArrowRight size={18} />
         </Button>
