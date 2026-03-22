@@ -8,7 +8,7 @@ export default function useWallet() {
 
   const connectWallet = async () => {
     if (!window.ethereum) {
-      setError('Cai MetaMask di bro')
+      setError('Cài https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn')
       return
     }
 
