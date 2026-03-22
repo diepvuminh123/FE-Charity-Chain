@@ -3,9 +3,21 @@ import { Link, NavLink } from 'react-router-dom'
 import { Menu, X, Heart } from 'lucide-react'
 import { NAV_LINKS } from '@/constants'
 import Button from '@/components/ui/Button'
+import useWallet from '@/hooks/useWallet'
+
+function shortenAddress(address) {
+  if (!address) {
+    return ''
+  }
+
+  return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { address, error, connectWallet } = useWallet()
+
+  const connectedAddress = shortenAddress(address)
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
@@ -42,12 +54,17 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
+          {address && (
+            <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+              {connectedAddress}
+            </div>
+          )}
+          <Button size="sm" onClick={connectWallet}>Connect Test Wallet</Button>
           <Link to="/login">
             <Button variant="outline" size="sm">
               Sign In
             </Button>
           </Link>
-          <Button size="sm">Get Started</Button>
         </div>
 
         {/* Mobile hamburger */}
@@ -79,12 +96,28 @@ export default function Navbar() {
               </NavLink>
             ))}
             <div className="flex flex-col gap-2 mt-2">
+              {address && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 text-center">
+                  {connectedAddress}
+                </div>
+              )}
+              <Button size="sm" className="w-full" onClick={connectWallet}>
+                Connect Test Wallet
+              </Button>
               <Link to="/login">
                 <Button variant="outline" size="sm" className="w-full">Sign In</Button>
               </Link>
-              <Button size="sm">Get Started</Button>
+              {error && (
+                <p className="text-xs text-red-600 text-center px-2">{error}</p>
+              )}
             </div>
           </nav>
+        </div>
+      )}
+
+      {!mobileOpen && error && (
+        <div className="border-t border-red-100 bg-red-50 px-4 py-2 text-center text-xs text-red-600">
+          {error}
         </div>
       )}
     </header>
