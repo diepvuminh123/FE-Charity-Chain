@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { Menu, X, Heart } from 'lucide-react'
+import { Menu, X, Heart, LogOut, User } from 'lucide-react'
 import { NAV_LINKS } from '@/constants'
+import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/ui/Button'
 import useWallet from '@/hooks/useWallet'
 
@@ -9,12 +10,12 @@ function shortenAddress(address) {
   if (!address) {
     return ''
   }
-
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
   const { address, error, connectWallet } = useWallet()
 
   const connectedAddress = shortenAddress(address)
@@ -54,17 +55,37 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Wallet connect */}
           {address && (
             <div className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
               {connectedAddress}
             </div>
           )}
-          <Button size="sm" onClick={connectWallet}>Connect Test Wallet</Button>
-          <Link to="/login">
-            <Button variant="outline" size="sm">
-              Sign In
-            </Button>
-          </Link>
+          {!address && (
+            <Button size="sm" onClick={connectWallet}>Connect Wallet</Button>
+          )}
+
+          {/* Auth */}
+          {isAuthenticated ? (
+            <>
+              <Link to="/admin" className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-primary transition-colors">
+                <User size={16} />
+                <span>{user?.full_name || user?.email}</span>
+              </Link>
+              <Button variant="outline" size="sm" onClick={logout}>
+                <LogOut size={14} />
+                <span className="ml-1">Logout</span>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="outline" size="sm">
+                  Sign In
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -96,17 +117,40 @@ export default function Navbar() {
               </NavLink>
             ))}
             <div className="flex flex-col gap-2 mt-2">
+              {/* Wallet connect mobile */}
               {address && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 text-center">
                   {connectedAddress}
                 </div>
               )}
-              <Button size="sm" className="w-full" onClick={connectWallet}>
-                Connect Test Wallet
-              </Button>
-              <Link to="/login">
-                <Button variant="outline" size="sm" className="w-full">Sign In</Button>
-              </Link>
+              {!address && (
+                <Button size="sm" className="w-full" onClick={connectWallet}>
+                  Connect Wallet
+                </Button>
+              )}
+
+              {/* Auth mobile */}
+              {isAuthenticated ? (
+                <>
+                  <Link to="/admin" onClick={() => setMobileOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <User size={14} className="mr-1" />
+                      {user?.full_name || 'Dashboard'}
+                    </Button>
+                  </Link>
+                  <Button size="sm" onClick={logout}>
+                    <LogOut size={14} className="mr-1" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" onClick={() => setMobileOpen(false)}>
+                    <Button variant="outline" size="sm" className="w-full">Sign In</Button>
+                  </Link>
+                </>
+              )}
+
               {error && (
                 <p className="text-xs text-red-600 text-center px-2">{error}</p>
               )}
