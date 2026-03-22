@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
 import Button from '@/components/ui/Button'
 import ROUTES from '@/constants/routes'
 import loginImg from '@/assets/images/Login- img1.png'
@@ -9,6 +10,13 @@ export default function Login() {
     email: '',
     password: '',
   })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const from = location.state?.from?.pathname || '/admin'
 
   const handleChange = (e) => {
     setFormData({
@@ -17,10 +25,23 @@ export default function Login() {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // TODO: Handle login logic
-    console.log('Login:', formData)
+    setError('')
+    setLoading(true)
+
+    try {
+      const res = await login(formData.email, formData.password)
+      if (res.status_code) {
+        navigate(from, { replace: true })
+      } else {
+        setError(res.message || 'Login failed')
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to connect to server')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -64,6 +85,12 @@ export default function Login() {
               <h2 className="text-2xl font-bold text-gray-800 mb-8 text-center">
                 Organization Login
               </h2>
+
+              {error && (
+                <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Email Input */}
@@ -112,8 +139,9 @@ export default function Login() {
                   variant="primary"
                   className="w-full !bg-success hover:!bg-green-600 mt-6"
                   size="md"
+                  disabled={loading}
                 >
-                  Log in
+                  {loading ? 'Logging in...' : 'Log in'}
                 </Button>
               </form>
 

@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { AuthProvider } from '@/contexts/AuthContext'
+import ProtectedRoute from '@/components/ProtectedRoute'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import Home from '@/pages/Home'
@@ -22,7 +24,14 @@ function AppLayout() {
           <Route path={ROUTES.HOME} element={<Home />} />
           <Route path={ROUTES.CAMPAIGNS} element={<Campaigns />} />
           <Route path={ROUTES.CAMPAIGN_DETAIL} element={<CampaignDetail />} />
-          <Route path={ROUTES.ADMIN} element={<Admin />} />
+          <Route
+            path={ROUTES.ADMIN}
+            element={
+              <ProtectedRoute allowedRoles={[0, 2]}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
           <Route path={ROUTES.REGISTER_ORGANIZATION} element={<RegisterOrganization />} />
           <Route path={ROUTES.LOGIN} element={<Login />} />
           <Route path={ROUTES.REGISTER} element={<Register />} />
@@ -36,7 +45,9 @@ function AppLayout() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <AuthProvider>
+        <AppLayout />
+      </AuthProvider>
     </BrowserRouter>
   )
 }
