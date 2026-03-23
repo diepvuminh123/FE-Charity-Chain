@@ -28,6 +28,11 @@ const authService = {
     return data
   },
 
+  async updateWallet(walletAddress) {
+    const { data } = await api.put('/profile/wallet', { wallet_address: walletAddress })
+    return data
+  },
+
   logout() {
     localStorage.removeItem('access_token')
     localStorage.removeItem('user')

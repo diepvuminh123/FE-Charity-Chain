@@ -42,6 +42,14 @@ export function AuthProvider({ children }) {
     return res
   }
 
+  const updateWallet = async (walletAddress) => {
+    const res = await authService.updateWallet(walletAddress)
+    if (res.status_code) {
+      setUser(res.data)
+    }
+    return res
+  }
+
   const logout = () => {
     setUser(null)
     authService.logout()
@@ -53,6 +61,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    updateWallet,
     isAuthenticated: !!user,
   }
 
