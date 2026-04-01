@@ -1,9 +1,9 @@
 import api from './api'
 
 const campaignService = {
-  async getCampaigns(page = 1, limit = 10) {
+  async getCampaigns(page = 1, limit = 10, search = '', status = '') {
     const { data } = await api.get('/campaigns', {
-      params: { page, limit },
+      params: { page, limit, search: search || undefined, status: status || undefined },
     })
     return data
   },

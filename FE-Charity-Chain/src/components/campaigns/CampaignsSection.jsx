@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Search, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import CampaignCard from './CampaignCard'
 import campaignService from '@/services/campaignService'
@@ -16,17 +16,33 @@ export default function CampaignsSection({
   const [totalPages, setTotalPages] = useState(1)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const debounceRef = useRef(null)
 
   useEffect(() => {
-    fetchCampaigns()
-  }, [page])
+    fetchCampaigns(page, searchTerm, statusFilter)
+  }, [page, statusFilter])
 
-  const fetchCampaigns = async () => {
+  const handleSearchChange = (e) => {
+    const value = e.target.value
+    setSearchTerm(value)
+    setPage(1)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      fetchCampaigns(1, value, statusFilter)
+    }, 400)
+  }
+
+  const handleStatusChange = (e) => {
+    setStatusFilter(e.target.value)
+    setPage(1)
+  }
+
+  const fetchCampaigns = async (currentPage, search, status) => {
     setLoading(true)
     setError('')
     try {
-      const res = await campaignService.getCampaigns(page, limit)
-      if (res.status_code && res.data) {
+      const res = await campaignService.getCampaigns(currentPage, limit, search, status)
+      if (res.success && res.data) {
         setCampaigns(res.data.items || [])
         setTotalPages(res.data.pagination?.total_pages || 1)
       }
@@ -38,15 +54,7 @@ export default function CampaignsSection({
     }
   }
 
-  // Client-side filtering
-  const filtered = campaigns.filter((c) => {
-    const matchesSearch =
-      !searchTerm ||
-      c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.short_description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = !statusFilter || c.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filtered = campaigns
 
   return (
     <section className={withHeading ? 'py-14 bg-gray-100' : 'py-10 bg-gray-100'}>
@@ -69,7 +77,7 @@ export default function CampaignsSection({
                   type="text"
                   placeholder="Search campaigns"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleSearchChange}
                   className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-700 outline-none transition focus:border-sky-400"
                 />
               </label>
@@ -77,7 +85,7 @@ export default function CampaignsSection({
               <div className="relative">
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={handleStatusChange}
                   className="h-11 w-full appearance-none rounded-lg border border-gray-200 bg-white px-4 pr-10 text-sm text-gray-700 outline-none"
                 >
                   <option value="">All Status</option>
