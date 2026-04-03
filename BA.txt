@@ -1,0 +1,133 @@
+TÀI LIỆU YÊU CẦU NGHIỆP VỤ (BRD)
+Dự án: Hệ thống Quản lý Hoạt động Từ thiện trên Blockchain (Voting Mode)
+Phiên bản: 1.1
+1. Mức tổng quan (Overview)
+● Product Goal: Xây dựng nền tảng quản lý quỹ từ thiện minh bạch, sử dụng
+Blockchain để lưu trữ bằng chứng và trao quyền cho cộng đồng quyết định việc giải
+ngân thông qua cơ chế Bỏ phiếu (Voting).
+● Vấn đề giải quyết: Tránh việc tổ chức từ thiện giải ngân sai mục đích hoặc không
+minh bạch. Cộng đồng là người giám sát trực tiếp.
+● In-Scope (Phạm vi thực hiện):
+○ Website quản lý chiến dịch và dòng tiền.
+○ Smart Contract xử lý logic: Quản lý số dư Token, Tính phiếu bầu (Voting),
+Thực hiện chuyển tiền.
+○ Đơn vị tiền tệ: Token
+○ Campaign được giả định là có sẵn nguồn quỹ trước khi được đưa vào hệ
+thống để quản lý và biểu quyết giải ngân.
+● Out-of-Scope
+○ Mobile App.
+○ Tính năng donate dành cho nhà hảo tâm
+○ Tích hợp ngân hàng (Fiat).
+○ Tính năng hoàn tiền trong trường hợp không đạt được các cột mốc hay tổ
+chức từ thiện chủ động hủy chiến dịch.
+2. Stakeholder & User Roles
+Role 	Tên hiển
+thị
+Mô tả 	Quyền hạn chính
+Admin 	Quản trị
+viên
+Người vận
+hành hệ
+thống
+Người quản lý hệ thống, chịu trách nhiệm cấu hình
+campaign, quản lý smart contract và kích hoạt giải
+ngân theo kết quả biểu quyết của cộng đồng.
+Charity Tổ chức Người gây
+quỹ
+Tạo yêu cầu rút tiền, Upload bằng chứng, Giải
+trình.
+
+-- 1 of 3 --
+
+3. Business Process (Luồng nghiệp vụ chính)
+Luồng: Giải ngân dựa trên Biểu quyết (Voting-based
+Disbursement)
+1. Bước 1 - Tạo yêu cầu:
+○ Charity đăng nhập -> Chọn chiến dịch.
+○ Tạo "Yêu cầu giải ngân" (Withdrawal Request) với số tiền (Token) và file bằng
+chứng.
+○ Trạng thái: Voting (Đang biểu quyết).
+2. Bước 2 - Cộng đồng Vote:
+○ Hệ thống mở cổng bình chọn trong một khoảng thời gian quy định (VD: 3
+ngày).
+○ User (Voter) kết nối ví -> Chọn "Yes" hoặc "No" cho yêu cầu đó.
+○ Guest chỉ nhìn thấy tiến độ thanh (VD: 70% Yes - 30% No) nhưng không bấm
+vote được.
+3. Bước 3 - Kết thúc & Xử lý:
+○ Hết thời gian Vote, Smart Contract tổng kết.
+○ Kịch bản A (Thông qua): Số phiếu Yes > No (hoặc > 50%). Trạng thái ->
+Approved.
+■ Hệ thống mở khóa-> Token tự động chuyển từ Contract sang ví
+Charity.
+○ Kịch bản B (Từ chối): Số phiếu No chiếm đa số. Trạng thái -> Rejected.
+■ Yêu cầu bị hủy. Tiền vẫn an toàn trong quỹ. Charity phải giải trình lại
+và tạo yêu cầu mới.
+4. Functional Requirements (FR)
+Nhóm chức năng: Campaign & Token Management
+● FR-CAM-01: Admin cấu hình địa chỉ Token (Token Address) cho từng chiến dịch
+(VD: Chiến dịch A dùng USDT).
+● FR-CAM-02: Hiển thị số dư quỹ và mục tiêu dưới dạng Token (VD: 10,000 USDT)
+thay vì ETH.
+Nhóm chức năng Vote:
+● FR-VOTE-01: Cho phép User (đã kết nối ví) thực hiện Vote cho một Yêu cầu giải
+ngân đang ở trạng thái "Voting".
+User
+(Voter)
+Người
+dùng
+Cộng đồng
+có ví
+Kết nối ví để Vote (Đồng ý/Từ chối) các yêu cầu
+giải ngân.
+Guest 	Khách
+vãng lai
+Người xem
+(Không cần
+ví)
+Chỉ xem: Xem danh sách chiến dịch, xem lịch sử
+dòng tiền, xem kết quả Vote. Không được thực
+hiện thao tác ghi dữ liệu (Vote/Rút).
+
+-- 2 of 3 --
+
+● FR-VOTE-02: Mỗi địa chỉ ví chỉ được Vote 1 lần cho 1 yêu cầu ( trọng số là như
+nhau) .
+● FR-VOTE-03: Hiển thị thời gian đếm ngược (Countdown) đến khi đóng Vote.
+Nhóm chức năng: Guest View (Dành cho Guest)
+● FR-GUEST-01: Guest truy cập trang chi tiết chiến dịch xem được: Số dư hiện tại,
+Các đợt đã giải ngân, Các đợt đang chờ Vote.
+● FR-GUEST-02: Guest xem được file bằng chứng (ảnh/pdf) mà Charity đã upload.
+● FR-GUEST-03: Guest click vào TxHash sẽ được chuyển hướng sang Blockchain
+Explorer (Etherscan/Bsc Scan) để kiểm chứng.
+Nhóm chức năng: Disbursement (Rút tiền)
+● FR-DIS-01: Charity chỉ được nhận tiền khi trạng thái Vote là Approved.
+● FR-DIS-02: Hệ thống ghi nhận Transaction Hash (TxHash) chuyển Token ngay khi
+giải ngân thành công.
+5. Non-Functional Requirements (NFR)
+● NFR-Transparency: Mọi phiếu bầu (Vote) đều được ghi nhận (có thể on-chain hoặc
+off-chain có chữ ký) để đảm bảo không ai sửa được kết quả.
+● NFR-UX: Guest user không bị bắt buộc đăng nhập/kết nối ví nếu chỉ vào xem thông
+tin.
+● NFR-Gas Fee:
+○ Doanh nghiệp chỉ trả gas ở 2 thời điểm có giá trị pháp lý cao nhất:
+1. chốt kết quả biểu quyết và chuyển tiền giải ngân.
+2. Các hoạt động còn lại hoàn toàn không tốn phí
+6. Acceptance Criteria (AC) - Ví dụ
+Feature: Khách (Guest) xem chiến dịch
+● Given: Một khách vãng lai (chưa login) truy cập vào link chiến dịch "Mùa hè xanh".
+● When: Trang web tải xong.
+● Then:
+1. Khách thấy tổng số Token quyên góp được (VD: 5000 USDT).
+2. Khách thấy danh sách các yêu cầu giải ngân.
+3. Nút "Vote" bị ẩn hoặc disable (yêu cầu kết nối ví).
+Feature: Kết thúc Vote
+● Given: Yêu cầu rút 1000 USDT đã hết thời gian vote. Tỷ lệ Yes là 80%.
+● When: Smart Contract/System trigger kiểm tra kết quả.
+● Then:
+1. Trạng thái yêu cầu đổi thành Approved.
+2. Token (1000 USDT) được chuyển sang ví Charity.
+3. Số dư quỹ giảm còn (Tổng - 1000).
+Question ??
+
+-- 3 of 3 --
+

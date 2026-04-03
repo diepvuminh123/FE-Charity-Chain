@@ -12,9 +12,19 @@ const withdrawalService = {
   },
 
   async createWithdrawal(campaignId, withdrawalData) {
+    const isFormData = typeof FormData !== 'undefined' && withdrawalData instanceof FormData
+    const config = isFormData
+      ? {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      : undefined
+
     const { data } = await api.post(
       `/org/campaigns/${campaignId}/withdrawal-requests`,
-      withdrawalData
+      withdrawalData,
+      config
     )
     return data
   },

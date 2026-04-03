@@ -14,14 +14,27 @@ import {
   Upload,
   X,
   LogOut,
+  Copy,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import campaignService from '@/services/campaignService'
+import withdrawalService from '@/services/withdrawalService'
 
 function formatCurrency(value) {
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return '0 VND'
   return `${num.toLocaleString('vi-VN')} VND`
+}
+
+function getTokenSymbol(campaign) {
+  return campaign?.token_symbol || campaign?.symbol || campaign?.token?.symbol || 'TOKEN'
+}
+
+function formatTokenAmount(value, campaign) {
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  const symbol = getTokenSymbol(campaign)
+  if (isNaN(num)) return `0 ${symbol}`
+  return `${num.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${symbol}`
 }
 
 function statusClass(status) {
@@ -40,6 +53,22 @@ function withdrawalStatusClass(status) {
   return 'bg-red-100 text-red-600'
 }
 
+function withdrawalStatusLabel(status) {
+  const s = status?.toLowerCase()
+  if (s === 'approved') return 'Approved'
+  if (s === 'voting') return 'Voting'
+  if (s === 'rejected') return 'Rejected'
+  return status || 'Unknown'
+}
+
+function withdrawalStatusNote(status) {
+  const s = status?.toLowerCase()
+  if (s === 'approved') return 'Approved for disbursement.'
+  if (s === 'voting') return 'In voting. Will transition to Approved or Rejected.'
+  if (s === 'rejected') return 'Rejected by voters. Submit a new request after updates.'
+  return 'Status update pending.'
+}
+
 export default function Admin() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -50,11 +79,21 @@ export default function Admin() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
   const [createError, setCreateError] = useState('')
+  const [withdrawalLoading, setWithdrawalLoading] = useState(false)
+  const [withdrawalError, setWithdrawalError] = useState('')
+  const [withdrawalSuccess, setWithdrawalSuccess] = useState('')
+  const [copiedWithdrawalTxId, setCopiedWithdrawalTxId] = useState(null)
+  const [withdrawalForm, setWithdrawalForm] = useState({
+    amount: '',
+    proofFile: null,
+    reason: '',
+  })
   const [createForm, setCreateForm] = useState({
     title: '',
     category: '',
     short_description: '',
     funding_goal: '',
+    token_address: '',
     deadline: '',
     target_group: '',
     location: '',
@@ -119,6 +158,7 @@ export default function Admin() {
     try {
       const payload = {
         ...createForm,
+        token_address: createForm.token_address?.trim() || '',
         funding_goal: parseFloat(createForm.funding_goal) || 0,
         deadline: createForm.deadline ? new Date(createForm.deadline).toISOString() : '',
         action,
@@ -128,6 +168,7 @@ export default function Admin() {
         setShowCreateForm(false)
         setCreateForm({
           title: '', category: '', short_description: '', funding_goal: '',
+          token_address: '',
           deadline: '', target_group: '', location: '', contact_email: '',
           problem_statement: '', project_solution: '', expected_impact: '', timeline: '',
         })
@@ -139,6 +180,97 @@ export default function Admin() {
       setCreateError(err.response?.data?.message || 'Failed to create campaign')
     } finally {
       setCreateLoading(false)
+    }
+  }
+
+  const resetWithdrawalModal = () => {
+    setWithdrawalForm({ amount: '', proofFile: null, reason: '' })
+    setWithdrawalError('')
+    setWithdrawalSuccess('')
+    setWithdrawalLoading(false)
+    setShowWithdrawalForm(false)
+  }
+
+  const handleWithdrawalFileChange = (event) => {
+    const file = event.target.files?.[0] || null
+    setWithdrawalError('')
+    setWithdrawalForm((prev) => ({ ...prev, proofFile: file }))
+  }
+
+  const handleCopyWithdrawalTx = (txHash, requestId) => {
+    if (!txHash) return
+    navigator.clipboard.writeText(txHash)
+    setCopiedWithdrawalTxId(requestId)
+    setTimeout(() => setCopiedWithdrawalTxId(null), 2000)
+  }
+
+  const validateWithdrawalForm = () => {
+    const amountNum = parseFloat(withdrawalForm.amount)
+    const availableAmount = parseFloat(selectedCampaign?.current_amount || 0)
+
+    if (isNaN(amountNum) || amountNum <= 0) {
+      return 'Amount must be greater than 0.'
+    }
+
+    if (amountNum > availableAmount) {
+      return 'Amount cannot exceed available balance.'
+    }
+
+    if (!withdrawalForm.proofFile) {
+      return 'Please upload one evidence file (PDF, JPG, PNG).'
+    }
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+    if (!allowedTypes.includes(withdrawalForm.proofFile.type)) {
+      return 'Evidence file must be PDF, JPG, or PNG.'
+    }
+
+    const tenMb = 10 * 1024 * 1024
+    if (withdrawalForm.proofFile.size > tenMb) {
+      return 'Evidence file size must be 10MB or less.'
+    }
+
+    if (!withdrawalForm.reason.trim()) {
+      return 'Description is required.'
+    }
+
+    return ''
+  }
+
+  const handleSubmitWithdrawal = async () => {
+    if (!selectedCampaign) return
+
+    setWithdrawalError('')
+    setWithdrawalSuccess('')
+
+    const validationMessage = validateWithdrawalForm()
+    if (validationMessage) {
+      setWithdrawalError(validationMessage)
+      return
+    }
+
+    setWithdrawalLoading(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('amount', String(parseFloat(withdrawalForm.amount)))
+      formData.append('reason', withdrawalForm.reason.trim())
+      formData.append('proof_file', withdrawalForm.proofFile)
+
+      const res = await withdrawalService.createWithdrawal(selectedCampaign.id, formData)
+      if (res.status_code) {
+        setWithdrawalSuccess('Withdrawal request submitted successfully.')
+        await fetchCampaigns()
+        setTimeout(() => {
+          resetWithdrawalModal()
+        }, 900)
+      } else {
+        setWithdrawalError(res.message || 'Failed to submit withdrawal request.')
+      }
+    } catch (err) {
+      setWithdrawalError(err.response?.data?.message || 'Failed to submit withdrawal request.')
+    } finally {
+      setWithdrawalLoading(false)
     }
   }
 
@@ -239,8 +371,8 @@ export default function Admin() {
                         </div>
 
                         <div className="mt-4 flex items-center justify-between text-sm font-semibold text-slate-600">
-                          <p>{formatCurrency(raised)}</p>
-                          <p>of {formatCurrency(goal)}</p>
+                          <p>{formatTokenAmount(raised, campaign)}</p>
+                          <p>of {formatTokenAmount(goal, campaign)}</p>
                         </div>
 
                         <div className="mt-2 h-2 rounded-full bg-slate-200">
@@ -288,8 +420,8 @@ export default function Admin() {
 
                 <p className="text-sm font-semibold text-slate-700">Funding Progress</p>
                 <div className="mt-4 flex items-center justify-between text-lg font-bold text-slate-800">
-                  <p>{formatCurrency(selectedCampaign.current_amount)}</p>
-                  <p className="text-slate-500">of {formatCurrency(selectedCampaign.goal_amount)}</p>
+                  <p>{formatTokenAmount(selectedCampaign.current_amount, selectedCampaign)}</p>
+                  <p className="text-slate-500">of {formatTokenAmount(selectedCampaign.goal_amount, selectedCampaign)}</p>
                 </div>
 
                 <div className="mt-3 h-2.5 rounded-full bg-slate-200">
@@ -304,9 +436,9 @@ export default function Admin() {
                 <article className="rounded-2xl border border-slate-200 bg-white p-5">
                   <p className="text-sm font-semibold text-slate-500">Available Balance</p>
                   <p className="mt-2 text-5xl/none font-bold text-emerald-600">
-                    {parseFloat(selectedCampaign.current_amount || 0).toLocaleString('vi-VN')}
+                    {parseFloat(selectedCampaign.current_amount || 0).toLocaleString('en-US', { maximumFractionDigits: 4 })}
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">VND</p>
+                  <p className="mt-1 text-sm text-slate-500">{getTokenSymbol(selectedCampaign)}</p>
                 </article>
 
                 <article className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
@@ -341,12 +473,41 @@ export default function Admin() {
                         <div>
                           <p className="inline-flex items-center gap-2 text-lg font-bold text-slate-800">
                             <FileText size={16} className="text-slate-500" />
-                            {formatCurrency(request.amount)}
+                            {formatTokenAmount(request.amount, selectedCampaign)}
                             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${withdrawalStatusClass(request.status)}`}>
-                              {request.status}
+                              {withdrawalStatusLabel(request.status)}
                             </span>
                           </p>
                           <p className="mt-1 text-sm text-slate-500">{request.reason}</p>
+                          <p className="mt-1 text-xs text-slate-500">{withdrawalStatusNote(request.status)}</p>
+                          <div className="mt-1">
+                            {request.tx_hash ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <a
+                                  href={`https://sepolia.etherscan.io/tx/${request.tx_hash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-sky-600"
+                                  title={request.tx_hash}
+                                >
+                                  Tx: {request.tx_hash.slice(0, 12)}...{request.tx_hash.slice(-10)}
+                                  <ExternalLink size={12} />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyWithdrawalTx(request.tx_hash, request.id)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-600"
+                                >
+                                  <Copy size={12} />
+                                  {copiedWithdrawalTxId === request.id ? 'Copied' : 'Copy'}
+                                </button>
+                              </div>
+                            ) : request.status?.toLowerCase() === 'approved' ? (
+                              <p className="text-xs font-semibold text-amber-600">Tx hash pending</p>
+                            ) : (
+                              <p className="text-xs text-slate-400">Tx hash will appear after approval and disbursement.</p>
+                            )}
+                          </div>
                           <p className="mt-1 inline-flex items-center gap-1 text-xs text-slate-400">
                             <Clock3 size={12} />
                             {new Date(request.created_at).toLocaleDateString()}
@@ -414,9 +575,23 @@ export default function Admin() {
                   <input type="number" value={createForm.funding_goal} onChange={(e) => setCreateForm({ ...createForm, funding_goal: e.target.value })} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400" required />
                 </label>
                 <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-slate-700">Token Address</span>
+                  <input
+                    type="text"
+                    value={createForm.token_address}
+                    onChange={(e) => setCreateForm({ ...createForm, token_address: e.target.value })}
+                    placeholder="0x..."
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="block">
                   <span className="mb-1 block text-sm font-semibold text-slate-700">Deadline *</span>
                   <input type="date" value={createForm.deadline} onChange={(e) => setCreateForm({ ...createForm, deadline: e.target.value })} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-400" required />
                 </label>
+                <div />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -465,16 +640,44 @@ export default function Admin() {
                 <h3 className="text-3xl/none font-bold text-slate-900">Create Withdrawal Request</h3>
                 <p className="mt-2 text-sm text-slate-500">Submit a withdrawal request for your campaign funds. All requests will be reviewed by the community.</p>
               </div>
-              <button type="button" onClick={() => setShowWithdrawalForm(false)} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
+              <button type="button" onClick={resetWithdrawalModal} className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700">
                 <X size={18} />
               </button>
             </div>
 
+            {withdrawalError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {withdrawalError}
+              </div>
+            )}
+
+            {withdrawalSuccess && (
+              <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                {withdrawalSuccess}
+              </div>
+            )}
+
+            {withdrawalLoading && (
+              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
+                Submitting withdrawal request. Please wait...
+              </div>
+            )}
+
             <div className="space-y-4">
               <label className="block">
-                <span className="mb-1 block text-sm font-semibold text-slate-700">Amount (VND)</span>
-                <input type="text" placeholder="Enter amount to withdraw" className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400" />
-                <p className="mt-1 text-sm text-slate-500">Available: {formatCurrency(selectedCampaign.current_amount)}</p>
+                <span className="mb-1 block text-sm font-semibold text-slate-700">Amount ({getTokenSymbol(selectedCampaign)})</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={withdrawalForm.amount}
+                  onChange={(e) => {
+                    setWithdrawalError('')
+                    setWithdrawalForm((prev) => ({ ...prev, amount: e.target.value }))
+                  }}
+                  placeholder="Enter amount to withdraw"
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400"
+                />
+                <p className="mt-1 text-sm text-slate-500">Available: {formatTokenAmount(selectedCampaign.current_amount, selectedCampaign)}</p>
               </label>
 
               <div>
@@ -483,15 +686,33 @@ export default function Admin() {
                   <Upload size={34} className="mx-auto text-slate-400" />
                   <p className="mt-3 text-sm text-slate-600">Drag and drop your file here, or click to browse</p>
                   <p className="text-xs text-slate-400">Accepts PDF, JPG, PNG (max 10MB)</p>
-                  <button type="button" className="mt-4 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">
+                  <label className="mt-4 inline-flex cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">
                     Browse Files
-                  </button>
+                    <input
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg"
+                      className="hidden"
+                      onChange={handleWithdrawalFileChange}
+                    />
+                  </label>
+                  {withdrawalForm.proofFile && (
+                    <p className="mt-2 text-xs text-slate-600">Selected file: {withdrawalForm.proofFile.name}</p>
+                  )}
                 </div>
               </div>
 
               <label className="block">
                 <span className="mb-1 block text-sm font-semibold text-slate-700">Description</span>
-                <textarea rows={3} placeholder="Describe how the funds will be used..." className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400" />
+                <textarea
+                  rows={3}
+                  value={withdrawalForm.reason}
+                  onChange={(e) => {
+                    setWithdrawalError('')
+                    setWithdrawalForm((prev) => ({ ...prev, reason: e.target.value }))
+                  }}
+                  placeholder="Describe how the funds will be used..."
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition focus:border-blue-400"
+                />
                 <p className="mt-1 text-sm text-slate-500">Provide detailed information about how you plan to use the funds.</p>
               </label>
 
@@ -500,11 +721,21 @@ export default function Admin() {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-1">
-                <button type="button" onClick={() => setShowWithdrawalForm(false)} className="rounded-xl border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700">
+                <button
+                  type="button"
+                  onClick={resetWithdrawalModal}
+                  className="rounded-xl border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700"
+                  disabled={withdrawalLoading}
+                >
                   Cancel
                 </button>
-                <button type="button" className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
-                  Submit Request
+                <button
+                  type="button"
+                  onClick={handleSubmitWithdrawal}
+                  disabled={withdrawalLoading}
+                  className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {withdrawalLoading ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
             </div>
