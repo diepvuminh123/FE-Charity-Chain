@@ -401,19 +401,50 @@ export default function CampaignDetail() {
                           <td className="px-4 py-3 font-semibold">Request #{wr.id}</td>
                           <td className="px-4 py-3 font-semibold">{formatTokenAmount(wr.amount)}</td>
                           <td className="px-4 py-3">
-                            {wr.proof_url ? (
-                              <a
-                                href={wr.proof_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2.5 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-                              >
-                                <FileText size={14} />
-                                View Evidence
-                              </a>
-                            ) : (
-                              <span className="text-gray-300">-</span>
-                            )}
+                            {(() => {
+                              if (!wr.proof_url) return <span className="text-gray-300">-</span>;
+                              const lowerUrl = wr.proof_url.toLowerCase();
+                              const isPdf = /\.pdf$/.test(lowerUrl) || lowerUrl.includes('.pdf');
+                              const isImage = !isPdf && (/\.(jpeg|jpg|gif|png|webp|svg)$/.test(lowerUrl) || lowerUrl.includes('/image/upload/'));
+
+                              if (isPdf) {
+                                return (
+                                  <a
+                                    href={wr.proof_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 transition"
+                                  >
+                                    <FileText size={16} />
+                                    Xem PDF
+                                  </a>
+                                );
+                              }
+                              
+                              if (isImage) {
+                                return (
+                                  <a
+                                    href={wr.proof_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block max-w-[80px] overflow-hidden rounded border border-gray-200 hover:opacity-80 transition"
+                                  >
+                                    <img src={wr.proof_url} alt="Proof" className="w-full h-auto object-cover" />
+                                  </a>
+                                );
+                              }
+                              return (
+                                <a
+                                  href={wr.proof_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                                >
+                                  <ExternalLink size={16} />
+                                  Link
+                                </a>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3 font-semibold">{voteYes}% Yes</td>
                           <td className="px-4 py-3">

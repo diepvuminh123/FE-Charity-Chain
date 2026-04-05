@@ -8,6 +8,13 @@ const campaignService = {
     return data
   },
 
+  async getMyCampaigns(page = 1, limit = 10) {
+    const { data } = await api.get('/org/campaigns', {
+      params: { page, limit },
+    })
+    return data
+  },
+
   async getCampaignById(id) {
     const { data } = await api.get(`/campaigns/${id}`)
     return data

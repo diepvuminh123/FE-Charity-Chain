@@ -75,6 +75,7 @@ export default function Admin() {
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedCampaignId, setSelectedCampaignId] = useState(null)
+  const [withdrawals, setWithdrawals] = useState([])
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
@@ -111,7 +112,7 @@ export default function Admin() {
   const fetchCampaigns = async () => {
     setLoading(true)
     try {
-      const res = await campaignService.getCampaigns(1, 50)
+      const res = await campaignService.getMyCampaigns(1, 50)
       if (res.status_code && res.data) {
         setCampaigns(res.data.items || [])
       }
@@ -119,6 +120,27 @@ export default function Admin() {
       setCampaigns([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedCampaignId) {
+      loadWithdrawals(selectedCampaignId)
+    } else {
+      setWithdrawals([])
+    }
+  }, [selectedCampaignId])
+
+  const loadWithdrawals = async (campaignId) => {
+    try {
+      const res = await withdrawalService.getWithdrawals(campaignId)
+      if (res.status_code && res.data) {
+        setWithdrawals(res.data)
+      } else {
+        setWithdrawals([])
+      }
+    } catch {
+      setWithdrawals([])
     }
   }
 
@@ -252,14 +274,44 @@ export default function Admin() {
     setWithdrawalLoading(true)
 
     try {
-      const formData = new FormData()
-      formData.append('amount', String(parseFloat(withdrawalForm.amount)))
-      formData.append('reason', withdrawalForm.reason.trim())
-      formData.append('proof_file', withdrawalForm.proofFile)
+      let proof_url = ''
+      
+      // 1. Upload to Cloudinary first
+      if (withdrawalForm.proofFile) {
+        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+        const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+        
+        if (!cloudName || !uploadPreset) {
+          throw new Error('Cloudinary configuration is missing. Please check your .env file.');
+        }
 
-      const res = await withdrawalService.createWithdrawal(selectedCampaign.id, formData)
+        const uploadData = new FormData();
+        uploadData.append('file', withdrawalForm.proofFile);
+        uploadData.append('upload_preset', uploadPreset);
+
+        const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
+          method: 'POST',
+          body: uploadData,
+        });
+
+        const result = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(result.error?.message || 'Failed to upload proof to Cloudinary');
+        }
+        proof_url = result.secure_url;
+      }
+
+      // 2. Submit to Backend
+      const payload = {
+        amount: parseFloat(withdrawalForm.amount),
+        reason: withdrawalForm.reason.trim(),
+        proof_url: proof_url,
+      }
+
+      const res = await withdrawalService.createWithdrawal(selectedCampaign.id, payload)
       if (res.status_code) {
         setWithdrawalSuccess('Withdrawal request submitted successfully.')
+        await loadWithdrawals(selectedCampaign.id)
         await fetchCampaigns()
         setTimeout(() => {
           resetWithdrawalModal()
@@ -464,10 +516,10 @@ export default function Admin() {
               </div>
 
               <div className="space-y-3">
-                {(selectedCampaign.withdrawals || []).length === 0 ? (
+                {withdrawals.length === 0 ? (
                   <p className="text-center py-6 text-slate-400">No withdrawal requests yet</p>
                 ) : (
-                  (selectedCampaign.withdrawals || []).map((request) => (
+                  withdrawals.map((request) => (
                     <article key={request.id} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -514,16 +566,51 @@ export default function Admin() {
                           </p>
                         </div>
 
-                        {request.proof_url && (
-                          <a
-                            href={request.proof_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-md p-2 text-slate-400 hover:bg-white hover:text-slate-700"
-                          >
-                            <ExternalLink size={15} />
-                          </a>
-                        )}
+                        {(() => {
+                          if (!request.proof_url) return null;
+                          const lowerUrl = request.proof_url.toLowerCase();
+                          const isPdf = /\.pdf$/.test(lowerUrl) || lowerUrl.includes('.pdf');
+                          const isImage = !isPdf && (/\.(jpeg|jpg|gif|png|webp|svg)$/.test(lowerUrl) || lowerUrl.includes('/image/upload/'));
+
+                          if (isPdf) {
+                            return (
+                              <a
+                                href={request.proof_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 hover:text-red-700 transition"
+                              >
+                                <FileText size={16} />
+                                Xem PDF
+                              </a>
+                            );
+                          }
+
+                          if (isImage) {
+                            return (
+                              <a
+                                href={request.proof_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block max-w-[64px] overflow-hidden rounded border border-gray-200 hover:opacity-80 transition"
+                              >
+                                <img src={request.proof_url} alt="Proof" className="w-full h-auto object-cover" />
+                              </a>
+                            );
+                          }
+                          return (
+                            <a
+                              href={request.proof_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-700 transition"
+                              title="View Document"
+                            >
+                              <ExternalLink size={16} />
+                              Mở Link
+                            </a>
+                          );
+                        })()}
                       </div>
                     </article>
                   ))
