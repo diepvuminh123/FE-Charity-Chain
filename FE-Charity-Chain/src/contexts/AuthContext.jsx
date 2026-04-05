@@ -65,6 +65,10 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
   }
 
+  if (window.Cypress) {
+    window.appContext = value
+  }
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
