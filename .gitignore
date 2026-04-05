@@ -1,0 +1,12 @@
+# ── Project-management & ceremony docs (local only) ──────────────────────────
+Business Analyst + PO.txt
+Description.txt
+HUONG-DAN-CHAY-DU-AN.md
+MEETING-AGENDA.md
+PROJECT-DOCUMENTATION.md
+RELEASE-NOTES.md
+sprint2-ceremonies (1).md
+sprint3-ceremonies.md
+
+# ── Environment files ─────────────────────────────────────────────────────────
+FE-Charity-Chain/.env.production
