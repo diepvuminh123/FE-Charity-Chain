@@ -40,7 +40,7 @@ export default function Register() {
         formData.password,
         formData.full_name
       )
-      if (res.status_code) {
+      if (res.success) {
         navigate(ROUTES.LOGIN, {
           state: { message: 'Registration successful! Please log in.' },
         })

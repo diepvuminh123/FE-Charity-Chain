@@ -44,7 +44,7 @@ export default function useWallet() {
       if (isAuthenticated && walletAddress) {
         try {
           const res = await updateWallet(walletAddress)
-          if (!res.status_code) {
+          if (!res.success) {
             setError(res.message || 'Không thể lưu wallet address')
           }
         } catch {

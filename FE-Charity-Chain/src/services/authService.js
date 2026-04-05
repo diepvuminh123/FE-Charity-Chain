@@ -3,7 +3,7 @@ import api from './api'
 const authService = {
   async login(email, password) {
     const { data } = await api.post('/auth/login', { email, password })
-    if (data.status_code && data.data?.access_token) {
+    if (data.success && data.data?.access_token) {
       localStorage.setItem('access_token', data.data.access_token)
     }
     return data

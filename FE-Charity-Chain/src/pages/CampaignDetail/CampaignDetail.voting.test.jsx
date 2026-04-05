@@ -63,10 +63,10 @@ describe('CampaignDetail voting flow states', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedCampaignService.getCampaignById.mockResolvedValue({
-      status_code: true,
+      success: true,
       data: makeCampaign(),
     })
-    mockedWithdrawalService.castVote.mockResolvedValue({ status_code: true })
+    mockedWithdrawalService.castVote.mockResolvedValue({ success: true })
   })
 
   it('shows connect wallet CTA and hides vote buttons for guests', async () => {

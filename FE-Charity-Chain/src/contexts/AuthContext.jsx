@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
       authService
         .getProfile()
         .then((res) => {
-          if (res.status_code) {
+          if (res.success) {
             setUser(res.data)
           }
         })
@@ -36,9 +36,9 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const res = await authService.login(email, password)
-    if (res.status_code && res.data?.access_token) {
+    if (res.success && res.data?.access_token) {
       const profileRes = await authService.getProfile()
-      if (profileRes.status_code) {
+      if (profileRes.success) {
         setUser(profileRes.data)
       }
     }
@@ -52,7 +52,7 @@ export function AuthProvider({ children }) {
 
   const updateWallet = async (walletAddress) => {
     const res = await authService.updateWallet(walletAddress)
-    if (res.status_code) {
+    if (res.success) {
       setUser(res.data)
     }
     return res

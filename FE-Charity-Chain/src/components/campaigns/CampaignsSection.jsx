@@ -42,7 +42,7 @@ export default function CampaignsSection({
     setError('')
     try {
       const res = await campaignService.getCampaigns(currentPage, limit, search, status)
-      if (res.status_code && res.data) {
+      if (res.success && res.data) {
         setCampaigns(res.data.items || [])
         setTotalPages(res.data.pagination?.total_pages || 1)
       }

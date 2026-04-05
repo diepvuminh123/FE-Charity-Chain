@@ -32,7 +32,7 @@ export default function Login() {
 
     try {
       const res = await login(formData.email, formData.password)
-      if (res.status_code) {
+      if (res.success) {
         navigate(from, { replace: true })
       } else {
         setError(res.message || 'Login failed')

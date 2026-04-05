@@ -38,7 +38,7 @@ export default function CampaignDetail() {
     setLoading(true)
     try {
       const res = await campaignService.getCampaignById(id)
-      if (res.status_code && res.data) {
+      if (res.success && res.data) {
         setCampaign(res.data)
         setError('')
       } else {
