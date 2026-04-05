@@ -113,7 +113,7 @@ export default function Admin() {
     setLoading(true)
     try {
       const res = await campaignService.getMyCampaigns(1, 50)
-      if (res.success && res.data) {
+      if (res.status_code && res.data) {
         setCampaigns(res.data.items || [])
       }
     } catch {
@@ -134,7 +134,7 @@ export default function Admin() {
   const loadWithdrawals = async (campaignId) => {
     try {
       const res = await withdrawalService.getWithdrawals(campaignId)
-      if (res.success && res.data) {
+      if (res.status_code && res.data) {
         setWithdrawals(res.data)
       } else {
         setWithdrawals([])
@@ -186,7 +186,7 @@ export default function Admin() {
         action,
       }
       const res = await campaignService.createCampaign(payload)
-      if (res.success) {
+      if (res.status_code) {
         setShowCreateForm(false)
         setCreateForm({
           title: '', category: '', short_description: '', funding_goal: '',
@@ -309,7 +309,7 @@ export default function Admin() {
       }
 
       const res = await withdrawalService.createWithdrawal(selectedCampaign.id, payload)
-      if (res.success) {
+      if (res.status_code) {
         setWithdrawalSuccess('Withdrawal request submitted successfully.')
         await loadWithdrawals(selectedCampaign.id)
         await fetchCampaigns()
