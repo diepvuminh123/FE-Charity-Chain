@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://20.191.147.36/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,16 +16,18 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Response interceptor: handle 401 and extract data
+// Response interceptor: handle 401
+// Chỉ xoá token cũ — KHÔNG redirect tự động.
+// ProtectedRoute đã lo redirect cho các trang cần auth.
+// Voter chỉ cần ví blockchain, không cần tài khoản (theo BA).
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token')
       localStorage.removeItem('user')
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
+      // Báo AuthContext xoá user state → ProtectedRoute sẽ redirect trang cần auth
+      window.dispatchEvent(new Event('auth:expired'))
     }
     return Promise.reject(error)
   }

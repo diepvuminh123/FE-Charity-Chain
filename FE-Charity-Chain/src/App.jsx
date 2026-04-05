@@ -1,19 +1,22 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
-import Home from '@/pages/Home'
-import Campaigns from '@/pages/Campaigns'
-import Admin from '@/pages/Admin'
-import Login from '@/pages/Login'
-import Register from '@/pages/Register'
-import CampaignDetail from '@/pages/CampaignDetail'
-import RegisterOrganization from '@/pages/RegisterOrganization'
-import Organizations from '@/pages/Organizations'
-import HowItWorks from '@/pages/HowItWorks'
-import About from '@/pages/About'
 import ROUTES from '@/constants/routes'
+
+// Lazy-load từng page → code splitting, giảm initial bundle size
+const Home = lazy(() => import('@/pages/Home'))
+const Campaigns = lazy(() => import('@/pages/Campaigns'))
+const Admin = lazy(() => import('@/pages/Admin'))
+const Login = lazy(() => import('@/pages/Login'))
+const Register = lazy(() => import('@/pages/Register'))
+const CampaignDetail = lazy(() => import('@/pages/CampaignDetail'))
+const RegisterOrganization = lazy(() => import('@/pages/RegisterOrganization'))
+const Organizations = lazy(() => import('@/pages/Organizations'))
+const HowItWorks = lazy(() => import('@/pages/HowItWorks'))
+const About = lazy(() => import('@/pages/About'))
 
 function AppLayout() {
   const location = useLocation()
@@ -23,6 +26,11 @@ function AppLayout() {
     <div className="flex flex-col min-h-screen">
       {!isAdminRoute && <Navbar />}
       <main className="flex-1">
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }>
         <Routes>
           <Route path={ROUTES.HOME} element={<Home />} />
           <Route path={ROUTES.CAMPAIGNS} element={<Campaigns />} />
@@ -43,6 +51,7 @@ function AppLayout() {
           <Route path={ROUTES.REGISTER} element={<Register />} />
           <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
+        </Suspense>
       </main>
       {!isAdminRoute && <Footer />}
     </div>

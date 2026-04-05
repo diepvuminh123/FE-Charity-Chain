@@ -1,0 +1,25 @@
+stages:
+  - deploy
+
+# ── FE deploy tự động qua Vercel CLI ──
+# Vercel tự kéo từ Git khi push — CI này là optional, dùng khi cần trigger thủ công.
+deploy-vercel:
+  stage: deploy
+  image: node:20-alpine
+  before_script:
+    - npm install -g vercel
+  script:
+    - cd FE-Charity-Chain
+    - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+    - vercel build --prod --token=$VERCEL_TOKEN
+    - vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+  only:
+    - fe
+  environment:
+    name: production
+    url: https://charity-management-alpha.vercel.app
+
+# ── CI Variables cần set trong GitLab → Settings → CI/CD → Variables ──
+# VERCEL_TOKEN : Token từ Vercel Dashboard → Account Settings → Tokens
+# VERCEL_ORG_ID    : (optional) Org ID nếu dùng team Vercel
+# VERCEL_PROJECT_ID: (optional) Project ID từ .vercel/project.json sau lần link đầu

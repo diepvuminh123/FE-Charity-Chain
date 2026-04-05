@@ -26,6 +26,14 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  // Lắng nghe token hết hạn (401) → xoá user state
+  // ProtectedRoute sẽ redirect các trang cần auth, trang public (vote) vẫn hoạt động
+  useEffect(() => {
+    const handleExpired = () => setUser(null)
+    window.addEventListener('auth:expired', handleExpired)
+    return () => window.removeEventListener('auth:expired', handleExpired)
+  }, [])
+
   const login = async (email, password) => {
     const res = await authService.login(email, password)
     if (res.status_code && res.data?.access_token) {
