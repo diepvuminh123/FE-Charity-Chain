@@ -38,7 +38,7 @@ export default function CampaignDetail() {
     setLoading(true)
     try {
       const res = await campaignService.getCampaignById(id)
-      if (res.status_code && res.data) {
+      if (res.success && res.data) {
         setCampaign(res.data)
         setError('')
       } else {
@@ -264,7 +264,7 @@ export default function CampaignDetail() {
     }))
 
     try {
-      await withdrawalService.castVote(requestId, isApproved)
+      await withdrawalService.castVote(requestId, address, isApproved)
       setVoteFeedback((prev) => ({
         ...prev,
         [requestId]: {

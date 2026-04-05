@@ -34,8 +34,9 @@ const withdrawalService = {
     return data
   },
 
-  async castVote(requestId, isApproved) {
-    const { data } = await api.post(`/withdrawal-requests/${requestId}/votes`, {
+  async castVote(requestId, walletAddress, isApproved) {
+    const { data } = await api.post(`/withdrawal-requests/${requestId}/vote`, {
+      wallet_address: (walletAddress || '').toLowerCase(),
       is_approved: isApproved,
     })
     return data
