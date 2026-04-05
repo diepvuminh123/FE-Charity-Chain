@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Navbar from '@/components/layout/Navbar'
@@ -10,6 +10,9 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import CampaignDetail from '@/pages/CampaignDetail'
 import RegisterOrganization from '@/pages/RegisterOrganization'
+import Organizations from '@/pages/Organizations'
+import HowItWorks from '@/pages/HowItWorks'
+import About from '@/pages/About'
 import ROUTES from '@/constants/routes'
 
 function AppLayout() {
@@ -33,8 +36,12 @@ function AppLayout() {
             }
           />
           <Route path={ROUTES.REGISTER_ORGANIZATION} element={<RegisterOrganization />} />
+          <Route path={ROUTES.ORGANIZATIONS} element={<Organizations />} />
+          <Route path={ROUTES.HOW_IT_WORKS} element={<HowItWorks />} />
+          <Route path={ROUTES.ABOUT} element={<About />} />
           <Route path={ROUTES.LOGIN} element={<Login />} />
           <Route path={ROUTES.REGISTER} element={<Register />} />
+          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
         </Routes>
       </main>
       {!isAdminRoute && <Footer />}
