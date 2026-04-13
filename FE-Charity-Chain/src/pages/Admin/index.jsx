@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  TrendingUp,
-  FolderKanban,
-  Users,
   ArrowRight,
   UsersRound,
   Bell,
@@ -19,6 +16,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import campaignService from '@/services/campaignService'
 import withdrawalService from '@/services/withdrawalService'
+import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard'
 
 function formatCurrency(value) {
   const num = typeof value === 'string' ? parseFloat(value) : value
@@ -145,34 +143,6 @@ export default function Admin() {
   }
 
   const selectedCampaign = campaigns.find((item) => item.id === selectedCampaignId)
-
-  // Compute highlights from real data
-  const totalRaised = campaigns.reduce((sum, c) => sum + parseFloat(c.current_amount || 0), 0)
-  const activeCampaigns = campaigns.filter((c) => c.status === 'active').length
-
-  const HIGHLIGHTS = [
-    {
-      title: 'Total Raised',
-      value: totalRaised > 0 ? totalRaised.toLocaleString('vi-VN') : '0',
-      subtitle: 'VND',
-      icon: TrendingUp,
-      iconColor: 'text-blue-500',
-    },
-    {
-      title: 'Active Campaigns',
-      value: String(activeCampaigns),
-      subtitle: 'Currently running',
-      icon: FolderKanban,
-      iconColor: 'text-green-500',
-    },
-    {
-      title: 'Total Campaigns',
-      value: String(campaigns.length),
-      subtitle: 'All campaigns',
-      icon: Users,
-      iconColor: 'text-orange-500',
-    },
-  ]
 
   const handleCreateCampaign = async (action) => {
     setCreateError('')
@@ -368,22 +338,8 @@ export default function Admin() {
               <p className="mt-2 text-slate-500">Track campaign performance, donors, and disbursements in one place.</p>
             </header>
 
-            {/* Highlights */}
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {HIGHLIGHTS.map((item) => {
-                const Icon = item.icon
-                return (
-                  <article key={item.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-                    <div className="flex items-start justify-between">
-                      <p className="text-sm font-semibold text-slate-500">{item.title}</p>
-                      <Icon size={18} className={item.iconColor} />
-                    </div>
-                    <p className="mt-5 text-5xl/none font-bold text-slate-900">{item.value}</p>
-                    <p className="mt-2 text-sm text-slate-500">{item.subtitle}</p>
-                  </article>
-                )
-              })}
-            </div>
+            {/* AD-01: Analytics Dashboard */}
+            <AnalyticsDashboard />
 
             {/* Campaigns list */}
             <section className="mt-7">

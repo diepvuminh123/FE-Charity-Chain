@@ -4,6 +4,7 @@ import { ChevronLeft, Copy, FileText, ExternalLink, Clock3 } from 'lucide-react'
 import ROUTES from '@/constants/routes'
 import campaignService from '@/services/campaignService'
 import withdrawalService from '@/services/withdrawalService'
+import transactionService from '@/services/transactionService'
 import useWallet from '@/hooks/useWallet'
 
 export default function CampaignDetail() {
@@ -18,6 +19,9 @@ export default function CampaignDetail() {
   const [voteStatusByRequest, setVoteStatusByRequest] = useState({})
   const [voteStatusErrorByRequest, setVoteStatusErrorByRequest] = useState({})
   const [nowMs, setNowMs] = useState(Date.now())
+  const [transactions, setTransactions] = useState([])
+  const [transactionsLoading, setTransactionsLoading] = useState(false)
+  const [transactionsError, setTransactionsError] = useState('')
   const { address, connectWallet, error: walletError } = useWallet()
 
   const normalizeAddress = (value) => (value || '').toString().trim().toLowerCase()
@@ -54,6 +58,26 @@ export default function CampaignDetail() {
   useEffect(() => {
     fetchCampaign()
   }, [fetchCampaign])
+
+  const fetchTransactions = useCallback(async () => {
+    if (!id) return
+    setTransactionsLoading(true)
+    try {
+      const res = await transactionService.getByCampaign(id, 1, 50)
+      const items = res?.data?.items || []
+      setTransactions(Array.isArray(items) ? items : [])
+      setTransactionsError('')
+    } catch (err) {
+      setTransactions([])
+      setTransactionsError(err.response?.data?.message || 'Failed to load transactions')
+    } finally {
+      setTransactionsLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    fetchTransactions()
+  }, [fetchTransactions])
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -251,6 +275,18 @@ export default function CampaignDetail() {
     }
   }
 
+  const friendlyVoteError = (raw) => {
+    if (!raw) return 'Unable to submit vote'
+    const lower = raw.toLowerCase()
+    if (lower.includes('already voted')) return 'You have already voted on this request.'
+    if (lower.includes('only donors')) return 'Only wallets that have donated to this campaign can vote.'
+    if (lower.includes('deadline')) return 'Voting deadline has passed for this request.'
+    if (lower.includes('closed')) return 'Voting is closed for this request.'
+    if (lower.includes('invalid wallet')) return 'Wallet address is invalid. Please reconnect and try again.'
+    if (lower.includes('not found')) return 'Withdrawal request no longer exists.'
+    return raw
+  }
+
   const handleVote = async (requestId, isApproved) => {
     if (!address || voteSubmittingId) return
 
@@ -281,12 +317,19 @@ export default function CampaignDetail() {
         },
       }))
       await fetchCampaign()
+      window.setTimeout(() => {
+        setVoteFeedback((prev) => {
+          const next = { ...prev }
+          delete next[requestId]
+          return next
+        })
+      }, 4000)
     } catch (err) {
       setVoteFeedback((prev) => ({
         ...prev,
         [requestId]: {
           type: 'error',
-          message: err.response?.data?.message || 'Unable to submit vote',
+          message: friendlyVoteError(err.response?.data?.message),
         },
       }))
     } finally {
@@ -294,7 +337,6 @@ export default function CampaignDetail() {
     }
   }
 
-  const approvedWithdrawals = withdrawals.filter((wr) => wr.status === 'approved')
   const hasAnyVotingRequest = withdrawals.some((wr) => wr.status === 'voting')
 
   return (
@@ -553,66 +595,109 @@ export default function CampaignDetail() {
           </div>
         </div>
 
-        {/* Disbursement History */}
-        {approvedWithdrawals.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-            <div className="border-b border-gray-200 px-5 py-4">
-              <h2 className="text-3xl/none font-bold text-gray-900">Disbursement History</h2>
-              <p className="mt-1 text-sm text-gray-500">Approved requests and their transaction hashes.</p>
-            </div>
+        {/* On-chain Transaction History (DB-03) */}
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+          <div className="border-b border-gray-200 px-5 py-4">
+            <h2 className="text-3xl/none font-bold text-gray-900">On-chain Transaction History</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Mọi giao dịch quyên góp (Donation) và giải ngân (Disbursement) ghi nhận on-chain cho chiến dịch này.
+            </p>
+          </div>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-gray-50 text-gray-500">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  <th className="px-4 py-3 font-semibold">Type</th>
+                  <th className="px-4 py-3 font-semibold">Amount ({tokenSymbol})</th>
+                  <th className="px-4 py-3 font-semibold">From → To</th>
+                  <th className="px-4 py-3 font-semibold">Date</th>
+                  <th className="px-4 py-3 font-semibold">Tx Hash</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactionsLoading ? (
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Request ID</th>
-                    <th className="px-4 py-3 font-semibold">Amount ({tokenSymbol})</th>
-                    <th className="px-4 py-3 font-semibold">Date</th>
-                    <th className="px-4 py-3 font-semibold">Transaction Hash</th>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                      Loading transactions...
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {approvedWithdrawals
-                    .map((wr) => (
-                      <tr key={wr.id} className="border-t border-gray-100 text-gray-700">
-                        <td className="px-4 py-3 font-semibold">#{wr.id}</td>
-                        <td className="px-4 py-3 font-semibold">{formatTokenAmount(wr.amount)}</td>
-                        <td className="px-4 py-3">{new Date(wr.updated_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                ) : transactionsError ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-red-500">
+                      {transactionsError}
+                    </td>
+                  </tr>
+                ) : transactions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                      Chưa có giao dịch on-chain nào cho chiến dịch này.
+                    </td>
+                  </tr>
+                ) : (
+                  transactions.map((tx) => {
+                    const isDonation = (tx.type || '').toLowerCase() === 'donation'
+                    const shortAddr = (a) => (a ? `${a.slice(0, 6)}...${a.slice(-4)}` : '-')
+                    return (
+                      <tr key={tx.id} className="border-t border-gray-100 text-gray-700">
                         <td className="px-4 py-3">
-                          {wr.tx_hash ? (
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              isDonation
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-sky-100 text-sky-700'
+                            }`}
+                          >
+                            {isDonation ? 'Donation' : 'Disbursement'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-semibold">{formatTokenAmount(tx.amount)}</td>
+                        <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                          {shortAddr(tx.from_address)} → {shortAddr(tx.to_address)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {new Date(tx.created_at).toLocaleString('en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="px-4 py-3">
+                          {tx.tx_hash ? (
                             <div className="flex items-center gap-2">
                               <a
-                                href={`https://sepolia.etherscan.io/tx/${wr.tx_hash}`}
+                                href={`https://sepolia.etherscan.io/tx/${tx.tx_hash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1 font-semibold text-sky-500 font-mono text-xs"
-                                title={wr.tx_hash}
+                                title={tx.tx_hash}
                               >
-                                {wr.tx_hash.slice(0, 12)}...{wr.tx_hash.slice(-10)}
+                                {tx.tx_hash.slice(0, 10)}...{tx.tx_hash.slice(-8)}
                                 <ExternalLink size={14} />
                               </a>
                               <button
                                 type="button"
-                                onClick={() => handleCopyTxHash(wr.tx_hash, wr.id)}
+                                onClick={() => handleCopyTxHash(tx.tx_hash, `tx-${tx.id}`)}
                                 className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-600"
                               >
                                 <Copy size={12} />
-                                {copiedTxId === wr.id ? 'Copied' : 'Copy'}
+                                {copiedTxId === `tx-${tx.id}` ? 'Copied' : 'Copy'}
                               </button>
                             </div>
                           ) : (
-                            <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                              Pending tx hash
-                            </span>
+                            <span className="text-gray-300">-</span>
                           )}
                         </td>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
+        </div>
       </div>
     </section>
   )

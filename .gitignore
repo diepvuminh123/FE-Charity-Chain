@@ -7,6 +7,8 @@ PROJECT-DOCUMENTATION.md
 RELEASE-NOTES.md
 sprint2-ceremonies (1).md
 sprint3-ceremonies.md
+sprint4-ceremonies (1).md
 
 # ── Environment files ─────────────────────────────────────────────────────────
 FE-Charity-Chain/.env.production
+.claude
